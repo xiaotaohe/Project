@@ -4,8 +4,9 @@
   > Mail: taochao1997@qq.com 
   > Created Time: Sun 07 Jul 2019 02:44:55 AM PDT
  ************************************************************************/
-
+#pragma once
 #include"tcp.hpp"
+#include"Sys_selecter.hpp"
 #include<iostream>
 #include<stdio.h>
 #include<stdlib.h>
@@ -15,11 +16,12 @@
 #include<sys/types.h>
 #include<stdlib.h>
 #include<atomic>
+#include<pthread.h>
 #include<json/json.h>
 #include<string.h>
 using namespace std; 
 
-atomic_int id;
+
 
 class Sys_Client
 {
@@ -34,6 +36,7 @@ class Sys_Client
     }
     void put();
     void run();//服务器主函数
+  private:
     //1.登录
     bool login();
     //2.注册
@@ -48,7 +51,8 @@ void Sys_Client:: put()
   cout<<"#################欢迎进入客户端##################"<<endl;
   cout<<"#               1.login(登录)                   #"<<endl;
   cout<<"#               2.register(注册)                #"<<endl;
-  cout<<"#################欢迎进入客户端##################"<<endl;
+  cout<<"#               3.exit(退出)                    #"<<endl;
+  cout<<"#################################################"<<endl;
 }
 
 
@@ -57,11 +61,9 @@ void Sys_Client:: put()
 //      服务器返回：code(返回类型：成功 1，失败 0);reason原因
 bool Sys_Client:: login()
 {
-  bool flag = false;
   //服务端返回登录信息：
   //1.登录表示：登陆成功 1 登录失败 0
   //2.原因：
-  do{
     int user_id = 0;
     int passwd = 0;
     cout<<"账号: "<<endl;
@@ -75,13 +77,15 @@ bool Sys_Client:: login()
     if((send(client.client_sock,user.toStyledString().c_str(),strlen(user.toStyledString().c_str()),0))<0)
     {
       cout<<"Login::send error!"<<endl;
-      continue;
+      cout<<"please try again!"<<endl;
+      return false;
     }
     char buf[1024];
     if((recv(client.client_sock,buf,1023,0))<0)
     {
       cout<<"Login::recv error!"<<endl;
-      continue;
+      cout<<"please try again!"<<endl;
+      return false;
     }
     //获取服务端对登录成功的反馈
     Json::Value response;
@@ -89,32 +93,48 @@ bool Sys_Client:: login()
     if(-1 == read.parse(buf,response))
     {
       cerr<<"read fail;error:"<<errno<<endl;
-      continue;
+      cout<<"please try again!"<<endl;
+      return false;
     }
     if(response["code"] != 1)
     {
       cout<<"login error "<<"reason: "<<response["reason"].asString()<<endl;
+      cout<<"please try agian!"<<endl;
+      return false;
     }
-    else 
-      flag = true;
-  }while(flag == false);
+    cout<<"wecome to root!"<<endl;
 }
 
 bool Sys_Client::registe()
 {
-  //设置操作次数不能超过三次
+  //1.注册，向服务器申请账号
+  Json::Value requestion;
+  requestion["type"] = "Register-ID";
+  while((send(client.client_sock,requestion.toStyledString().c_str(),strlen(requestion.toStyledString().c_str()),0))<0)
+      ;
+  cout<<"Registe: request ID send!"<<endl;
+  //2.接受服务端分配的账号
+  int id[1];
+  if(recv(client.client_sock,id,sizeof(int),0)<0)
+  {
+    cout<<"Register: requestion Id error!,recv id!"<<endl;
+    return false;
+  }
+  //2.设置操作次数不能超过三次
   int second = 0;
   int passwd = 0;
   int re_passwd = 0;
   while(second != 3)
   {
-    cout<<"你的账号为: "<<id<<endl;
+    cout<<"你的账号为: "<<id[0]<<endl;
     cout<<"请输入密码(六位)："<<endl;
     cin>>passwd;
     cout<<"请输入确认密码: "<<endl;
     cin>>re_passwd;
     if(passwd == re_passwd)
       break;
+    else 
+      cout<<"两次密码不一致，请重新输入！"<<endl;
     second++;
   }
   //1.三次设置密码错误，此时退出
@@ -128,7 +148,7 @@ bool Sys_Client::registe()
   {
     //1.组织并发送给服务器
     Json::Value user_val;
-    int user_id = id;
+    int user_id = id[0];
     user_val["type"] = "Register";
     user_val["user_id"] = user_id;
     user_val["passwd"] = passwd;
@@ -171,9 +191,43 @@ bool Sys_Client::registe()
       }
     }
   }
-  id++;
   return true;
 }
 
-int main()
-{}
+void Sys_Client::run()
+{
+  int option = 0;
+  while(1)
+  {
+    bool flag = false;//标记是否登陆成功
+    Sys_Client::put();
+    cout<<"please enter your chose!"<<endl;
+    cin>>option;
+    switch(option)
+    {
+      //1.登录
+      case 1:
+        flag = Sys_Client::login();
+        if(flag)
+        {
+          //1.创建selecter服务端线程
+          pthread_t ret;
+          pthread_create(&ret,NULL,selecter,(void*)client.client_sock);
+          
+          //2.登录成功后的逻辑:增、删、改、查
+          //client_work(client.client_sock);
+        }
+        break;
+      //2.注册
+      case 2:
+        Sys_Client::registe();
+        break;
+      //3.退出并释放资源
+      case 3:
+        exit(0);
+        break;
+    }
+  }
+}
+
+
