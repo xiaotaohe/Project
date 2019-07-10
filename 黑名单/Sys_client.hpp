@@ -7,6 +7,7 @@
 #pragma once
 #include"tcp.hpp"
 #include"Sys_selecter.hpp"
+#include"Sys_c_work.hpp"
 #include<iostream>
 #include<stdio.h>
 #include<stdlib.h>
@@ -20,8 +21,6 @@
 #include<json/json.h>
 #include<string.h>
 using namespace std; 
-
-
 
 class Sys_Client
 {
@@ -103,6 +102,7 @@ bool Sys_Client:: login()
       return false;
     }
     cout<<"wecome to root!"<<endl;
+    return true;
 }
 
 bool Sys_Client::registe()
@@ -212,10 +212,12 @@ void Sys_Client::run()
         {
           //1.创建selecter服务端线程
           pthread_t ret;
-          pthread_create(&ret,NULL,selecter,(void*)client.client_sock);
-          
+          pthread_create(&ret,NULL,selecter,(void*)&client.client_sock);
+          //线程分离
+          pthread_detach(ret);
           //2.登录成功后的逻辑:增、删、改、查
-          //client_work(client.client_sock);
+          cout<<"进入主线程！"<<endl;
+          client_work(client.client_sock);
         }
         break;
       //2.注册
@@ -226,8 +228,9 @@ void Sys_Client::run()
       case 3:
         exit(0);
         break;
+      default:
+        cout<<"option error,please  choice agin!"<<endl;
+        break;
     }
   }
 }
-
-
