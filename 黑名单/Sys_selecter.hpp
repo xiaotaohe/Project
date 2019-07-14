@@ -47,22 +47,25 @@ class Selecter
 //客户端套接字回调函数
 void on_client(int fd,short event,void* arg)
 { 
-  cout<<"触发 on_client 回调"<<endl;
-  cout<<"on_client: cli_sock"<<fd<<endl;
+  // cout<<"触发 on_client 回调"<<endl;
+  //cout<<"on_client: cli_sock"<<fd<<endl;
   char buf[1024] = {'\0'};
   //解析出服务端套接字
-  int Sys_sock = *((int*)arg);
+  int Sys_sock = ((Cli_arg*)arg)->fd;
   if(recv(fd,buf,1023,0)>0)
   {
-    cout<<buf<<endl;
+    //cout<<buf<<endl;
     //1.消息处理
     //2.转发
-    if(send(Sys_sock,buf,strlen(buf),0)<0)
-      cout<<"Sys_select: transpond error!"<<endl;
+    //cout<<"Sys_sock: "<<Sys_sock<<endl;
+    //if(send(Sys_sock,buf,strlen(buf),0)<0)
+    //   cout<<"Sys_select: transpond error!"<<endl;
+    //!!!!!!上述任务统一有 work中封装的selecter_work处理
+    work::selecter_work(Sys_sock,buf);
   }
   else//关闭客户端
   {
-    cout<<"close :"<<fd<<endl;
+    //cout<<"close :"<<fd<<endl;
     event_free(event_map[fd]);
     event_map.erase(fd);
     close(fd);
@@ -76,7 +79,7 @@ void on_listen(int fd,short event,void* arg)
   Cli_arg cli_arg = *((Cli_arg*)arg);
 
   //1.客户端套接字
-  cout<<"触发 on_listen 回调"<<endl;
+  //cout<<"触发 on_listen 回调"<<endl;
   int cli_sock = -1;
   //2.接受连接
   struct sockaddr_in cli_addr;
@@ -87,9 +90,9 @@ void on_listen(int fd,short event,void* arg)
     cout<<"Sys_select: accept error!"<<endl;
     return;
   }
-  cout<<"cli_sock: "<<cli_sock<<endl;
+  //cout<<"cli_sock: "<<cli_sock<<endl;
   //4.创建事件
-  struct event* cli_event = event_new(cli_arg.base,cli_sock,EV_READ|EV_PERSIST,on_client,(void*)&(cli_arg.fd));
+  struct event* cli_event = event_new(cli_arg.base,cli_sock,EV_READ|EV_PERSIST,on_client,arg);
   if(cli_event == NULL)
   {
     cout<<"Sys_select: cli_event error!"<<endl;
