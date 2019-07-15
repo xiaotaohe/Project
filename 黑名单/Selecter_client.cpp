@@ -46,6 +46,6 @@ int main()
 void get_select_info(Json::Value& selecter_info)
 {
 	cout<<"开始录入："<<endl;
-  selecter_info["type"] = "Select";
+  selecter_info["type"] = "Selecter";
   work::get_info(selecter_info);
 }
