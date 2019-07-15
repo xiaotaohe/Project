@@ -114,11 +114,24 @@ bool Sys_Client::registe()
       ;
   cout<<"Registe: request ID send!"<<endl;
   //2.接受服务端分配的账号
-  int id[1];
-  if(recv(client.client_sock,id,sizeof(int),0)<0)
+  char buf[1024] = {0};
+  int id = -1;
+  if(recv(client.client_sock,buf,1023,0)<0)
   {
     cout<<"Register: requestion Id error!,recv id!"<<endl;
     return false;
+  }
+  else 
+  {
+    Json::Value val;
+    Json::Reader read;
+    if(read.parse(buf,val) == -1)
+    {
+      cout<<"parse id error!"<<endl;
+      return false;
+    }
+    cout<<"parse ok!"<<endl; 
+    id = val["id"].asInt();
   }
   //2.设置操作次数不能超过三次
   int second = 0;
@@ -126,7 +139,7 @@ bool Sys_Client::registe()
   int re_passwd = 0;
   while(second != 3)
   {
-    cout<<"你的账号为: "<<id[0]<<endl;
+    cout<<"你的账号为: "<<id<<endl;
     cout<<"请输入密码(六位)："<<endl;
     cin>>passwd;
     cout<<"请输入确认密码: "<<endl;
@@ -148,7 +161,7 @@ bool Sys_Client::registe()
   {
     //1.组织并发送给服务器
     Json::Value user_val;
-    int user_id = id[0];
+    int user_id = id;
     user_val["type"] = "Register";
     user_val["user_id"] = user_id;
     user_val["passwd"] = passwd;
@@ -168,6 +181,7 @@ bool Sys_Client::registe()
     }
     else//发送成功
     {
+    cout<<"send over"<<endl;
         //获取服务器返回结果
       char buf[1024] = {'0'};
       if(recv(client.client_sock,buf,1023,0)<0)
@@ -182,7 +196,8 @@ bool Sys_Client::registe()
         cout<<"Registe: pase error!"<<endl;
         return false;
       }
-      if(response["code"] == 1)
+      cout<<response["code"]<<endl;
+      if(response["code"].asInt() == 1)
         cout<<"Registe: registe success!"<<endl;
       else 
       {
@@ -197,6 +212,7 @@ bool Sys_Client::registe()
 void Sys_Client::run()
 {
   int option = 0;
+  cout<<"client_sock: "<<client.client_sock<<endl;
   while(1)
   {
     bool flag = false;//标记是否登陆成功
@@ -217,7 +233,7 @@ void Sys_Client::run()
           pthread_detach(ret);
           //2.登录成功后的逻辑:增、删、改、查
           cout<<"进入主线程！"<<endl;
-          client_work(client.client_sock);
+          work::client_work(client.client_sock);
         }
         break;
       //2.注册
