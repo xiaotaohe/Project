@@ -4,6 +4,7 @@
   > Mail: taochao1997@qq.com 
   > Created Time: Sun 14 Jul 2019 07:26:59 PM PDT
  ************************************************************************/
+#pragma  once 
 #include"tcp.hpp"
 #include"mysql.hpp"
 #include"Sys_s_work.hpp"
@@ -41,7 +42,7 @@ class work
     static void on_listen(int fd,short event, void* arg);
     static void lib_event(Server* ser,mysql* data_base);
   private:
-    static void fun_work(int sock,fun* ptr,mysql* data_base);
+    static void fun_work(int sock,Json::Value& val,fun* ptr,mysql* data_base);
     static void shunt(Json::Value& val,int sock,mysql* data_base);
 
 };
@@ -51,7 +52,12 @@ void work:: shunt(Json::Value& val,int sock,mysql* data_base)
 {
   if(val["type"].asString() == "Register-ID"){
     Register reg;
-    fun_work(sock,&reg,data_base);
+    fun_work(sock,val,&reg,data_base);
+  }
+  else if(val["type"].asString() == "Login")
+  {
+    Login login;
+    fun_work(sock,val,&login,data_base);
   }
 }
 
@@ -80,6 +86,7 @@ void work:: on_client(int fd,short event, void* arg)
   }
   //2.分流
   shunt(val,fd,ser_arg.data_base);
+  updata();
 }
 
 
@@ -117,6 +124,7 @@ void work:: on_listen(int fd,short event, void* arg)
 void work:: lib_event(Server* ser,mysql* data_base)
 {
   //libevent
+  load();
   //1.创建event_base,初始化
   struct event_base* lib_base = event_base_new();
   //2.创建事件
@@ -130,7 +138,7 @@ void work:: lib_event(Server* ser,mysql* data_base)
 }
 
 //各个业务的总处理函数
-void work:: fun_work(int sock,fun* ptr,mysql* data_base)
+void work:: fun_work(int sock,Json::Value& val,fun* ptr,mysql* data_base)
 {
-  ptr->method(sock,data_base);
+  ptr->method(sock,val,data_base);
 }
