@@ -8,6 +8,7 @@
 #include"tcp.hpp"
 #include"mysql.hpp"
 #include"Sys_server.hpp"
+#include"Sys_s_work.hpp"
 #include<iostream>
 #include<stdio.h>
 #include<unistd.h>
@@ -27,6 +28,9 @@ int main()
 {
   //1.启动服务器
   Server server("0.0.0.0",9090);
+  //server_flag tcp.hpp里自己设置的标志位，标识绑定失败
+  if(server_flag == -1)
+    return -1;
   //2.连接数据库
   mysql data_base;
   if(!data_base.connect ("root","1230","black_list"))
