@@ -64,7 +64,7 @@ bool Sys_Client:: login()
   //1.登录表示：登陆成功 1 登录失败 0
   //2.原因：
     int user_id = 0;
-    int passwd = 0;
+    string passwd = "";
     cout<<"账号: "<<endl;
     cin>>user_id;
     cout<<"密码: "<<endl;
