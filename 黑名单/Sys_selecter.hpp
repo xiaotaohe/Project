@@ -109,11 +109,12 @@ void* selecter(void* arg)
 {
   //1.启动客户端子服务器
   Selecter Sel; 
-  cout<<"listen_sock: "<<Sel.server->listen_sock<<endl; 
   //2.对端服务器套接字
   //接收到的信息可能要发往该套接字
   int Sys_serv_sock = *((int*)arg);
-
+  //server_flag tcp.hpp里封装的标志位，防止绑定失败
+  if(server_flag == -1)
+    return NULL;
   //libevent进行多路复用
   //1.初始化libevent
   struct event_base* lib_base = event_base_new();
